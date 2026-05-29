@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\ProviderTransaction;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final class MalipoPayClient
@@ -56,9 +57,14 @@ final class MalipoPayClient
         string $path,
         ?array $payload = null,
     ): array {
-        $apiToken = (string) config('malipo.api_token');
+        [$apiToken, $publicKey] = $this->resolveCredentials();
+
         if ($apiToken === '') {
-            throw new RuntimeException('MALIPO_API_TOKEN is not configured.');
+            throw new RuntimeException('Malipo apiToken credential is not configured. Expected an mp_sk_ value.');
+        }
+
+        if ($publicKey === '') {
+            throw new RuntimeException('Malipo public bearer credential is not configured. Expected an mp_pk_ value.');
         }
 
         $transaction = ProviderTransaction::create([
@@ -69,13 +75,50 @@ final class MalipoPayClient
         ]);
 
         try {
-            $response = Http::timeout((int) config('malipo.timeout'))
-                ->acceptJson()
-                ->withHeaders(['apiToken' => $apiToken])
-                ->baseUrl(rtrim((string) config('malipo.base_url'), '/'))
-                ->send($method, $path, $payload ? ['json' => $payload] : []);
+            $baseUrl = rtrim((string) config('malipo.base_url'), '/');
+            $url = "{$baseUrl}{$path}";
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'apiToken' => $apiToken,
+            ];
+            $headers['Authorization'] = str_starts_with($publicKey, 'Bearer ')
+                ? $publicKey
+                : "Bearer {$publicKey}";
 
+            Log::debug('Malipo request', [
+                'method' => $method,
+                'url' => $url,
+                'headers' => array_diff_key($headers, array_flip(['apiToken', 'Authorization'])), // mask secrets
+                'credential_diagnostics' => [
+                    'apiToken_prefix' => substr($apiToken, 0, 6),
+                    'apiToken_length' => strlen($apiToken),
+                    'authorization_prefix' => substr($publicKey, 0, 6),
+                    'authorization_length' => strlen($publicKey),
+                ],
+                'payload' => $payload,
+            ]);
+
+            $http = Http::timeout((int) config('malipo.timeout'))
+                ->asJson()
+                ->withHeaders($headers);
+
+            $requestPayload = $payload ? $this->withProjectContext($payload) : null;
+
+            if ($method === 'GET') {
+                $response = $http->get($url);
+            } else {
+                $response = $http->post($url, $requestPayload ?? []);
+            }
+
+            $rawBody = $response->body();
             $data = $this->responseData($response);
+
+            Log::debug('Malipo response', [
+                'http_status' => $response->status(),
+                'raw_body' => $rawBody,
+                'parsed_data' => $data,
+            ]);
 
             $transaction->update([
                 'provider_reference' => $this->extractReference($data),
@@ -87,7 +130,11 @@ final class MalipoPayClient
             ]);
 
             if (! $response->successful()) {
-                throw new RuntimeException($this->extractMessage($data) ?? "Malipo request failed with HTTP {$response->status()}.");
+                $message = $this->extractMessage($data);
+                if ($message === null || $message === '') {
+                    $message = "Malipo request failed with HTTP {$response->status()}. Raw: {$rawBody}";
+                }
+                throw new RuntimeException($message);
             }
 
             return $data;
@@ -95,6 +142,72 @@ final class MalipoPayClient
             $transaction->update(['error_message' => $exception->getMessage()]);
             throw $exception;
         }
+    }
+
+    /**
+     * Malipo's examples use mp_sk_* as the apiToken header and mp_pk_* as the
+     * Authorization bearer value. Admin-stored settings from earlier builds may
+     * have those labels reversed, so normalize by prefix before sending.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function resolveCredentials(): array
+    {
+        $candidates = [
+            (string) config('malipo.api_token'),
+            (string) config('malipo.public_key'),
+            (string) config('malipo.secret_key'),
+        ];
+
+        $apiToken = '';
+        $publicKey = '';
+
+        foreach ($candidates as $candidate) {
+            $value = trim($candidate);
+            if ($value === '') {
+                continue;
+            }
+
+            $withoutBearer = preg_replace('/^Bearer\s+/i', '', $value) ?? $value;
+
+            if ($apiToken === '' && str_starts_with($withoutBearer, 'mp_sk_')) {
+                $apiToken = $withoutBearer;
+            }
+
+            if ($publicKey === '' && str_starts_with($withoutBearer, 'mp_pk_')) {
+                $publicKey = $withoutBearer;
+            }
+        }
+
+        if ($apiToken === '') {
+            $apiToken = trim((string) config('malipo.api_token'));
+        }
+
+        if ($publicKey === '') {
+            $publicKey = preg_replace('/^Bearer\s+/i', '', trim((string) config('malipo.public_key'))) ?? '';
+        }
+
+        return [$apiToken, $publicKey];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function withProjectContext(array $payload): array
+    {
+        $project = (string) config('malipo.project');
+        $merchantAccountId = (string) config('malipo.merchant_account_id');
+
+        if ($project !== '') {
+            $payload['project'] ??= $project;
+        }
+
+        if ($merchantAccountId !== '') {
+            $payload['merchantAccountId'] ??= $merchantAccountId;
+        }
+
+        return $payload;
     }
 
     /**
@@ -172,7 +285,40 @@ final class MalipoPayClient
      */
     private function extractMessage(array $data): ?string
     {
-        return $this->stringAt($data, ['message']) ?? $this->stringAt($data, ['error']);
+        $top = $this->stringAt($data, ['message']) ?? $this->stringAt($data, ['error']);
+        if ($top !== null) {
+            $nested = $this->extractNestedErrors($data);
+            if ($nested !== '') {
+                return "{$top}: {$nested}";
+            }
+
+            return $top;
+        }
+
+        return $this->extractNestedErrors($data) ?: null;
+    }
+
+    private function extractNestedErrors(array $data): string
+    {
+        $errors = $this->valueAt($data, ['errors'])
+            ?? $this->valueAt($data, ['data', 'errors'])
+            ?? $this->valueAt($data, ['validation'])
+            ?? [];
+
+        if (! is_array($errors) || $errors === []) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($errors as $key => $value) {
+            if (is_string($value)) {
+                $parts[] = "{$key}: {$value}";
+            } elseif (is_array($value)) {
+                $parts[] = "{$key}: ".implode(', ', $value);
+            }
+        }
+
+        return implode('; ', $parts);
     }
 
     /**

@@ -213,6 +213,10 @@ final class PaymentOrderService
             return $order;
         }
 
+        if ($order->status === 'canceled') {
+            return $order;
+        }
+
         $order->update([
             'status' => 'completed',
             'provider_reference' => $this->malipo->extractReference($eventData) ?? $order->provider_reference,
@@ -252,12 +256,35 @@ final class PaymentOrderService
         return $order->refresh();
     }
 
+    public function cancelPayin(PaymentOrder $order, string $reason = 'Canceled by student'): PaymentOrder
+    {
+        if ($order->status === 'canceled') {
+            return $order;
+        }
+
+        if ($order->settled_at !== null || $order->status === 'completed') {
+            throw new RuntimeException('Completed payments cannot be canceled.');
+        }
+
+        if (! in_array($order->status, ['pending', 'processing'], true)) {
+            throw new RuntimeException('This payment can no longer be canceled.');
+        }
+
+        $order->update([
+            'status' => 'canceled',
+            'failure_reason' => $reason !== '' ? $reason : 'Canceled by student',
+            'failed_at' => now(),
+        ]);
+
+        return $order->refresh();
+    }
+
     /**
      * @param  array<string, mixed>  $eventData
      */
     public function failPayin(PaymentOrder $order, array $eventData = []): PaymentOrder
     {
-        if ($order->status === 'completed') {
+        if (in_array($order->status, ['completed', 'canceled'], true)) {
             return $order;
         }
 

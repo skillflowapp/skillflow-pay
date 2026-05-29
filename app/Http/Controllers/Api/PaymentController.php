@@ -102,6 +102,24 @@ final class PaymentController extends Controller
         return new PaymentOrderResource($this->payments->refreshFromProvider($paymentOrder));
     }
 
+    public function cancel(Request $request, PaymentOrder $paymentOrder): JsonResource
+    {
+        abort_unless($paymentOrder->payer_uid === $this->uid($request), 403);
+        abort_if($paymentOrder->settled_at !== null || $paymentOrder->status === 'completed', 409, 'Completed payments cannot be canceled.');
+        abort_unless(in_array($paymentOrder->status, ['pending', 'processing', 'canceled'], true), 409, 'This payment can no longer be canceled.');
+
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return new PaymentOrderResource(
+            $this->payments->cancelPayin(
+                $paymentOrder,
+                (string) ($data['reason'] ?? 'Canceled by student')
+            )
+        );
+    }
+
     public function access(Request $request): JsonResponse
     {
         $data = $request->validate([

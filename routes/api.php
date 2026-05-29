@@ -15,6 +15,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('payments/ai-credits', [PaymentController::class, 'aiCredits']);
         Route::get('payments', [PaymentController::class, 'index']);
         Route::get('payments/access', [PaymentController::class, 'access']);
+        Route::post('payments/{paymentOrder}/cancel', [PaymentController::class, 'cancel']);
         Route::get('payments/{paymentOrder}', [PaymentController::class, 'show']);
 
         Route::get('wallet', WalletController::class);
