@@ -48,7 +48,7 @@ export function AppSidebar() {
 
     const footerNavItems: NavItem[] = [
         {
-            title: 'Malipo Pay Docs',
+            title: 'API Documentation',
             href: 'https://developers.malipopay.co.tz/api/',
             icon: FileText,
         },

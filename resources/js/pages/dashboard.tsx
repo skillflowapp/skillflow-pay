@@ -65,16 +65,15 @@ function formatMoney(amount: number, currency = 'TZS') {
 function statusColor(status: string) {
     switch (status) {
         case 'completed':
-            return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+            return 'bg-[#00183d] text-primary border-primary';
         case 'failed':
-            return 'bg-red-500/15 text-red-400 border-red-500/30';
         case 'rejected':
-            return 'bg-red-500/15 text-red-400 border-red-500/30';
+            return 'bg-red-950 text-red-400 border-red-500';
         case 'pending':
         case 'processing':
-            return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+            return 'bg-amber-950 text-amber-400 border-amber-500';
         default:
-            return 'bg-slate-500/15 text-slate-400 border-slate-500/30';
+            return 'bg-muted text-muted-foreground border-border';
     }
 }
 
@@ -94,21 +93,21 @@ function StatCard({
     trendUp?: boolean;
 }) {
     return (
-        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur">
+        <Card className="border-border bg-card">
             <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                     <div>
-                        <p className="text-sm font-medium text-slate-400">{title}</p>
-                        <p className="mt-1 text-2xl font-bold text-white">{value}</p>
-                        {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
+                        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+                        {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
                         {trend && (
-                            <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${trendUp ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                            <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${trendUp ? 'bg-[#00183d] text-primary' : 'bg-red-950 text-red-400'}`}>
                                 {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                                 {trend}
                             </div>
                         )}
                     </div>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-300">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
                         <Icon className="h-5 w-5" />
                     </div>
                 </div>
@@ -132,12 +131,12 @@ export default function Dashboard({
             <div className="space-y-6 px-4 py-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-                        <p className="text-sm text-slate-400">Overview of payments, payouts, and platform health.</p>
+                        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+                        <p className="text-sm text-muted-foreground">Overview of payments, payouts, and platform health.</p>
                     </div>
                     <Link
                         href={dashboard()}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-700"
+                        className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:bg-muted"
                     >
                         <RefreshCw className="h-3.5 w-3.5" />
                         Refresh
@@ -172,29 +171,29 @@ export default function Dashboard({
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur lg:col-span-2">
+                    <Card className="border-border bg-card lg:col-span-2">
                         <CardHeader>
                             <div className="flex items-center gap-2">
-                                <Activity className="h-5 w-5 text-emerald-400" />
-                                <CardTitle className="text-white">Revenue Trend (30 Days)</CardTitle>
+                                <Activity className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-foreground">Revenue Trend (30 Days)</CardTitle>
                             </div>
-                            <CardDescription className="text-slate-400">Daily completed transaction totals.</CardDescription>
+                            <CardDescription className="text-muted-foreground">Daily completed transaction totals.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-end gap-2">
                                 {revenueByDay.length === 0 ? (
-                                    <p className="text-sm text-slate-500">No completed transactions in the last 30 days.</p>
+                                    <p className="text-sm text-muted-foreground">No completed transactions in the last 30 days.</p>
                                 ) : (
                                     revenueByDay.map((day) => (
                                         <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
                                             <div
-                                                className="w-full rounded-t bg-emerald-500/60 transition-all hover:bg-emerald-400"
+                                                className="w-full rounded-t bg-primary transition-all hover:bg-[#3399FF]"
                                                 style={{
                                                     height: `${Math.max((day.total / maxRevenue) * 160, 4)}px`,
                                                 }}
                                                 title={`${day.date}: ${formatMoney(day.total)}`}
                                             />
-                                            <span className="text-[10px] text-slate-500">
+                                            <span className="text-[10px] text-muted-foreground">
                                                 {new Date(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                                             </span>
                                         </div>
@@ -204,11 +203,11 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
 
-                    <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur">
+                    <Card className="border-border bg-card">
                         <CardHeader>
                             <div className="flex items-center gap-2">
-                                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                                <CardTitle className="text-white">Status Breakdown</CardTitle>
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-foreground">Status Breakdown</CardTitle>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -217,13 +216,13 @@ export default function Dashboard({
                                 return (
                                     <div key={row.status}>
                                         <div className="mb-1 flex items-center justify-between text-sm">
-                                            <span className="capitalize text-slate-300">{row.status}</span>
-                                            <span className="text-slate-400">{row.count} ({pct}%)</span>
+                                            <span className="capitalize text-foreground">{row.status}</span>
+                                            <span className="text-muted-foreground">{row.count} ({pct}%)</span>
                                         </div>
-                                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700">
+                                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                             <div
                                                 className={`h-full rounded-full ${
-                                                    row.status === 'completed' ? 'bg-emerald-500' : row.status === 'failed' ? 'bg-red-500' : 'bg-amber-500'
+                                                    row.status === 'completed' ? 'bg-primary' : row.status === 'failed' ? 'bg-red-500' : 'bg-amber-500'
                                                 }`}
                                                 style={{ width: `${pct}%` }}
                                             />
@@ -236,20 +235,20 @@ export default function Dashboard({
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur">
+                    <Card className="border-border bg-card">
                         <CardHeader className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <CreditCard className="h-5 w-5 text-emerald-400" />
-                                <CardTitle className="text-white">Recent Transactions</CardTitle>
+                                <CreditCard className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-foreground">Recent Transactions</CardTitle>
                             </div>
-                            <Badge variant="outline" className="text-slate-400">{recentTransactions.length} shown</Badge>
+                            <Badge variant="outline" className="text-muted-foreground">{recentTransactions.length} shown</Badge>
                         </CardHeader>
                         <CardContent className="max-h-[420px] overflow-auto">
                             <div className="space-y-3">
                                 {recentTransactions.map((tx) => (
                                     <div
                                         key={tx.id}
-                                        className="flex items-center justify-between rounded-lg border border-slate-700/40 bg-slate-900/40 p-3"
+                                        className="flex items-center justify-between rounded-lg border border-border bg-muted p-3"
                                     >
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
@@ -259,20 +258,20 @@ export default function Dashboard({
                                                 >
                                                     {tx.status}
                                                 </Badge>
-                                                <span className="text-xs text-slate-500">{tx.type}</span>
+                                                <span className="text-xs text-muted-foreground">{tx.type}</span>
                                             </div>
-                                            <p className="mt-1 truncate text-sm font-medium text-white">
+                                            <p className="mt-1 truncate text-sm font-medium text-foreground">
                                                 {tx.reference}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {tx.created_at ? new Date(tx.created_at).toLocaleString() : ''}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-semibold text-white">
+                                            <p className="text-sm font-semibold text-foreground">
                                                 {formatMoney(tx.amount, tx.currency)}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {tx.payee_uid ? `Payee: ${tx.payee_uid.slice(0, 12)}...` : 'Platform'}
                                             </p>
                                         </div>
@@ -282,20 +281,20 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
 
-                    <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur">
+                    <Card className="border-border bg-card">
                         <CardHeader className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Wallet className="h-5 w-5 text-emerald-400" />
-                                <CardTitle className="text-white">Recent Withdrawals</CardTitle>
+                                <Wallet className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-foreground">Recent Withdrawals</CardTitle>
                             </div>
-                            <Badge variant="outline" className="text-slate-400">{recentWithdrawals.length} shown</Badge>
+                            <Badge variant="outline" className="text-muted-foreground">{recentWithdrawals.length} shown</Badge>
                         </CardHeader>
                         <CardContent className="max-h-[420px] overflow-auto">
                             <div className="space-y-3">
                                 {recentWithdrawals.map((w) => (
                                     <div
                                         key={w.id}
-                                        className="flex items-center justify-between rounded-lg border border-slate-700/40 bg-slate-900/40 p-3"
+                                        className="flex items-center justify-between rounded-lg border border-border bg-muted p-3"
                                     >
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
@@ -305,23 +304,23 @@ export default function Dashboard({
                                                 >
                                                     {w.status}
                                                 </Badge>
-                                                <span className="text-xs text-slate-500 capitalize">{w.type}</span>
+                                                <span className="text-xs text-muted-foreground capitalize">{w.type}</span>
                                             </div>
-                                            <p className="mt-1 truncate text-sm font-medium text-white">
+                                            <p className="mt-1 truncate text-sm font-medium text-foreground">
                                                 {w.reference}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {w.recipient_phone}
                                             </p>
-                                            <p className="text-[10px] text-slate-600">
+                                            <p className="text-[10px] text-muted-foreground">
                                                 {w.created_at ? new Date(w.created_at).toLocaleString() : ''}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-semibold text-white">
+                                            <p className="text-sm font-semibold text-foreground">
                                                 {formatMoney(w.amount, w.currency)}
                                             </p>
-                                            <p className="text-xs text-slate-400">
+                                            <p className="text-xs text-muted-foreground">
                                                 Payout {formatMoney(w.payout_amount, w.currency)}
                                             </p>
                                         </div>
@@ -332,12 +331,12 @@ export default function Dashboard({
                     </Card>
                 </div>
 
-                <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur">
+                <Card className="border-border bg-card">
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Clock className="h-5 w-5 text-emerald-400" />
-                                <CardTitle className="text-white">Platform Quick Stats</CardTitle>
+                                <Clock className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-foreground">Platform Quick Stats</CardTitle>
                             </div>
                         </div>
                     </CardHeader>
@@ -348,7 +347,7 @@ export default function Dashboard({
                                     label: 'Success Rate',
                                     value: stats.total_transactions > 0 ? `${Math.round((stats.completed_transactions / stats.total_transactions) * 100)}%` : '0%',
                                     icon: CheckCircle2,
-                                    color: 'text-emerald-400',
+                                    color: 'text-primary',
                                 },
                                 {
                                     label: 'Pending / Processing',
@@ -366,16 +365,16 @@ export default function Dashboard({
                                     label: 'Avg Revenue / Txn',
                                     value: stats.total_transactions > 0 ? formatMoney(Math.round(stats.total_revenue / stats.total_transactions)) : formatMoney(0),
                                     icon: TrendingUp,
-                                    color: 'text-emerald-400',
+                                    color: 'text-primary',
                                 },
                             ].map((item) => (
-                                <div key={item.label} className="flex items-center gap-4 rounded-lg border border-slate-700/40 bg-slate-900/40 p-4">
-                                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-slate-700/50 ${item.color}`}>
+                                <div key={item.label} className="flex items-center gap-4 rounded-lg border border-border bg-muted p-4">
+                                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-muted ${item.color}`}>
                                         <item.icon className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-400">{item.label}</p>
-                                        <p className="text-lg font-bold text-white">{item.value}</p>
+                                        <p className="text-xs text-muted-foreground">{item.label}</p>
+                                        <p className="text-lg font-bold text-foreground">{item.value}</p>
                                     </div>
                                 </div>
                             ))}

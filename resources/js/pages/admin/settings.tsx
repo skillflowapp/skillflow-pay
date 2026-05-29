@@ -96,14 +96,14 @@ export default function AdminSettings() {
                 </div>
 
                 {flash?.success && (
-                    <Alert className="border-green-500/50 bg-green-500/10 text-green-700 dark:border-green-500/30 dark:text-green-400">
+                    <Alert className="border-border bg-primary text-primary-foreground">
                         <AlertTitle>Success</AlertTitle>
                         <AlertDescription>{flash.success}</AlertDescription>
                     </Alert>
                 )}
 
                 {testResult && (
-                    <Alert className={testResult.reachable ? 'border-green-500/50 bg-green-500/10 text-green-700 dark:border-green-500/30 dark:text-green-400' : 'border-red-500/50 bg-red-500/10 text-red-700 dark:border-red-500/30 dark:text-red-400'}>
+                    <Alert className={testResult.reachable ? 'border-border bg-card text-foreground' : 'border-destructive bg-destructive text-destructive-foreground'}>
                         <AlertTitle>Connection Test</AlertTitle>
                         <AlertDescription>{testResult.message}</AlertDescription>
                     </Alert>
@@ -112,13 +112,13 @@ export default function AdminSettings() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid gap-6 lg:grid-cols-2">
                         <Card>
-                            <CardHeader>
+                                <CardHeader>
                                 <div className="flex items-center gap-2">
                                     <Globe className="h-5 w-5 text-muted-foreground" />
-                                    <CardTitle>Malipo Pay API</CardTitle>
+                                    <CardTitle>Payment Provider API</CardTitle>
                                 </div>
                                 <CardDescription>
-                                    Configure your Malipo Pay integration credentials.
+                                    Configure your payment provider integration credentials.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -166,7 +166,7 @@ export default function AdminSettings() {
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Paste exactly as shown in the Malipo dashboard.
+                                        Paste exactly as shown in your provider dashboard.
                                     </p>
                                     {credentials.malipo_api_token.includes('*') && (
                                         <p className="text-xs text-muted-foreground">

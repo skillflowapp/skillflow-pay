@@ -18,32 +18,32 @@ type Props = {
 export default function Login({ status }: Props) {
     return (
         <>
-            <Head title="Admin Login — SkillFlow Pay" />
+            <Head title="Admin Login — SkillFlow" />
 
             <PasskeyVerify />
 
-            <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 md:p-10">
+            <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
                 <div className="w-full max-w-sm">
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-col items-center gap-4">
-                            <Link href="/" className="flex items-center gap-2 text-sm text-slate-400 transition hover:text-white">
+                            <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground">
                                 <ArrowLeft className="h-4 w-4" />
                                 Back to home
                             </Link>
 
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                                 <Wallet className="h-7 w-7" />
                             </div>
 
                             <div className="space-y-2 text-center">
-                                <h1 className="text-2xl font-bold text-white">SkillFlow Pay</h1>
-                                <p className="text-sm text-slate-400">
+                                <h1 className="text-2xl font-bold text-foreground">SkillFlow</h1>
+                                <p className="text-sm text-muted-foreground">
                                     Admin sign in to manage payments and payouts
                                 </p>
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-6 backdrop-blur">
+                        <div className="rounded-2xl border border-border bg-card p-6">
                             <Form
                                 {...store.form()}
                                 resetOnSuccess={['password']}
@@ -53,7 +53,7 @@ export default function Login({ status }: Props) {
                                     <>
                                         <div className="grid gap-5">
                                             <div className="grid gap-2">
-                                                <Label htmlFor="email" className="text-slate-300">Email address</Label>
+                                                <Label htmlFor="email" className="text-foreground">Email address</Label>
                                                 <Input
                                                     id="email"
                                                     type="email"
@@ -63,17 +63,17 @@ export default function Login({ status }: Props) {
                                                     tabIndex={1}
                                                     autoComplete="email"
                                                     placeholder="admin@pay.skillflowtz.com"
-                                                    className="border-slate-600 bg-slate-900/60 text-white placeholder:text-slate-500 focus-visible:ring-emerald-500"
+                                                    className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                                                 />
                                                 <InputError message={errors.email} />
                                             </div>
 
                                             <div className="grid gap-2">
                                                 <div className="flex items-center justify-between">
-                                                    <Label htmlFor="password" className="text-slate-300">Password</Label>
+                                                    <Label htmlFor="password" className="text-foreground">Password</Label>
                                                 </div>
                                                 <div className="relative">
-                                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                                     <PasswordInput
                                                         id="password"
                                                         name="password"
@@ -81,7 +81,7 @@ export default function Login({ status }: Props) {
                                                         tabIndex={2}
                                                         autoComplete="current-password"
                                                         placeholder="Enter your password"
-                                                        className="border-slate-600 bg-slate-900/60 pl-9 text-white placeholder:text-slate-500 focus-visible:ring-emerald-500"
+                                                        className="border-border bg-background pl-9 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                                                     />
                                                 </div>
                                                 <InputError message={errors.password} />
@@ -89,7 +89,7 @@ export default function Login({ status }: Props) {
 
                                             <Button
                                                 type="submit"
-                                                className="mt-1 w-full bg-emerald-500 text-white hover:bg-emerald-400"
+                                                className="mt-1 w-full bg-primary text-primary-foreground hover:bg-secondary hover:text-secondary-foreground"
                                                 tabIndex={4}
                                                 disabled={processing}
                                                 data-test="login-button"
@@ -100,7 +100,7 @@ export default function Login({ status }: Props) {
                                         </div>
 
                                         {status && (
-                                            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-sm font-medium text-emerald-300">
+                                            <div className="rounded-lg bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground">
                                                 {status}
                                             </div>
                                         )}
