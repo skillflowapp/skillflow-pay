@@ -60,6 +60,11 @@ final class MalipoWebhookController extends Controller
                     $this->payments->settlePayin($order, $payload);
                 }
             } elseif ($withdrawal = $this->withdrawals->findByReference($reference)) {
+                // Manual approval flow: only act on webhooks for already-approved withdrawals.
+                if ($withdrawal->status === 'pending') {
+                    throw new \RuntimeException('Withdrawal is pending admin approval. Webhook will be processed after approval.');
+                }
+
                 if ($this->isFailure($status)) {
                     $this->withdrawals->reverse($withdrawal, (string) ($payload['message'] ?? 'Payout failed'));
                 } elseif ($this->isSuccess($status)) {

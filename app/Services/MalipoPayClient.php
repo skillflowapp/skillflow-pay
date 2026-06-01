@@ -103,12 +103,10 @@ final class MalipoPayClient
                 ->asJson()
                 ->withHeaders($headers);
 
-            $requestPayload = $payload ? $this->withProjectContext($payload) : null;
-
             if ($method === 'GET') {
                 $response = $http->get($url);
             } else {
-                $response = $http->post($url, $requestPayload ?? []);
+                $response = $http->post($url, $payload ?? []);
             }
 
             $rawBody = $response->body();
@@ -188,26 +186,6 @@ final class MalipoPayClient
         }
 
         return [$apiToken, $publicKey];
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function withProjectContext(array $payload): array
-    {
-        $project = (string) config('malipo.project');
-        $merchantAccountId = (string) config('malipo.merchant_account_id');
-
-        if ($project !== '') {
-            $payload['project'] ??= $project;
-        }
-
-        if ($merchantAccountId !== '') {
-            $payload['merchantAccountId'] ??= $merchantAccountId;
-        }
-
-        return $payload;
     }
 
     /**

@@ -36,12 +36,12 @@ final class SettingsServiceProvider extends ServiceProvider
         $keys = [
             'malipo.base_url' => 'malipo_base_url',
             'malipo.api_token' => 'malipo_api_token',
-            'malipo.public_key' => 'malipo_public_key',
             'malipo.secret_key' => 'malipo_secret_key',
-            'malipo.project' => 'malipo_project',
-            'malipo.merchant_account_id' => 'malipo_merchant_account_id',
             'malipo.webhook_secret' => 'malipo_webhook_secret',
             'malipo.timeout' => 'malipo_timeout',
+            'textify.api_key' => 'textify_api_key',
+            'textify.sender_name' => 'textify_sender_name',
+            'notifications.admin_phone' => 'admin_notification_phone',
             'firebase.project_id' => 'firebase_project_id',
         ];
 
@@ -54,6 +54,11 @@ final class SettingsServiceProvider extends ServiceProvider
                 };
                 Config::set($configKey, $casted);
             }
+        }
+
+        // Fallback textify.sender_name to env if not in DB
+        if (config('textify.sender_name') === null || config('textify.sender_name') === '') {
+            Config::set('textify.sender_name', env('TEXTIFY_SENDER_NAME', 'UPDATE'));
         }
     }
 }

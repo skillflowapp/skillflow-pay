@@ -14,6 +14,7 @@ final class WithdrawalService
     public function __construct(
         private readonly MalipoPayClient $malipo,
         private readonly WalletLedgerService $wallets,
+        private readonly TextifySmsService $sms,
     ) {}
 
     /**
@@ -54,7 +55,7 @@ final class WithdrawalService
             'public_id' => (string) Str::uuid(),
             'reference' => $reference,
             'type' => $type,
-            'status' => 'processing',
+            'status' => 'pending',
             'owner_uid' => $ownerUid,
             'owner_name' => $ownerName,
             'requested_amount' => $amount,
@@ -68,6 +69,7 @@ final class WithdrawalService
             'reserved_at' => now(),
         ]);
 
+        // Reserve funds from the wallet immediately so the balance reflects the pending withdrawal
         $this->wallets->reserveWithdrawal(
             ownerUid: $ownerUid,
             ownerType: $type,
@@ -79,34 +81,87 @@ final class WithdrawalService
             metadata: ['withdrawalPublicId' => $withdrawal->public_id],
         );
 
+        // Notify admin via SMS so manual processing can happen
+        $this->notifyAdmin($withdrawal);
+
+        return $withdrawal->fresh();
+    }
+
+    /**
+     * Admin approves a pending withdrawal and triggers actual disbursement.
+     */
+    public function approve(WithdrawalRequest $withdrawal): WithdrawalRequest
+    {
+        if ($withdrawal->status !== 'pending') {
+            throw new RuntimeException('Only pending withdrawals can be approved.');
+        }
+
+        $withdrawal->update([
+            'status' => 'approved',
+            'processed_at' => now(),
+        ]);
+
         try {
-            $response = $this->malipo->disburse($reference, [
-                'reference' => $reference,
-                'description' => "SkillFlow {$type} withdrawal",
-                'amount' => $payoutAmount,
-                'phoneNumber' => $phone,
+            $response = $this->malipo->disburse($withdrawal->reference, [
+                'reference' => $withdrawal->reference,
+                'description' => "SkillFlow {$withdrawal->type} withdrawal",
+                'amount' => $withdrawal->payout_amount,
+                'phoneNumber' => $withdrawal->recipient_phone,
             ]);
 
             $status = $this->normalizeProviderStatus($this->malipo->extractStatus($response), 'approved');
+
             $withdrawal->update([
                 'status' => $status,
-                'provider_reference' => $this->malipo->extractReference($response) ?? $reference,
+                'provider_reference' => $this->malipo->extractReference($response) ?? $withdrawal->reference,
                 'provider_external_reference' => $this->malipo->extractExternalReference($response),
                 'processed_at' => now(),
                 'completed_at' => $status === 'completed' ? now() : null,
             ]);
+
+            $this->notifyUser($withdrawal);
         } catch (RuntimeException $exception) {
-            $this->reverse($withdrawal, $exception->getMessage());
+            $withdrawal->update([
+                'status' => 'approved',
+                'failure_reason' => $exception->getMessage(),
+            ]);
             throw $exception;
         }
 
-        return $withdrawal->refresh();
+        return $withdrawal->fresh();
     }
 
     /**
-     * @param  array<string, mixed>  $eventData
+     * Admin rejects a pending withdrawal and reverses the reserved funds.
      */
-    public function settle(WithdrawalRequest $withdrawal, array $eventData = []): WithdrawalRequest
+    public function reject(WithdrawalRequest $withdrawal, ?string $reason = null): WithdrawalRequest
+    {
+        if ($withdrawal->status !== 'pending') {
+            throw new RuntimeException('Only pending withdrawals can be rejected.');
+        }
+
+        $this->wallets->reverseWithdrawal(
+            ownerUid: $withdrawal->owner_uid,
+            ownerType: $withdrawal->type,
+            amount: $withdrawal->requested_amount,
+            currency: $withdrawal->currency,
+            sourceId: (string) $withdrawal->id,
+            ownerName: $withdrawal->owner_name,
+        );
+
+        $withdrawal->update([
+            'status' => 'rejected',
+            'failure_reason' => $reason ?? 'Rejected by admin',
+            'processed_at' => now(),
+            'reversed_at' => now(),
+        ]);
+
+        $this->notifyUser($withdrawal);
+
+        return $withdrawal->fresh();
+    }
+
+    public function settle(WithdrawalRequest $withdrawal): WithdrawalRequest
     {
         if ($withdrawal->status === 'completed') {
             return $withdrawal;
@@ -114,14 +169,14 @@ final class WithdrawalService
 
         $withdrawal->update([
             'status' => 'completed',
-            'provider_reference' => $this->malipo->extractReference($eventData) ?? $withdrawal->provider_reference,
-            'provider_external_reference' => $this->malipo->extractExternalReference($eventData) ?? $withdrawal->provider_external_reference,
             'processed_at' => $withdrawal->processed_at ?? now(),
             'completed_at' => now(),
             'failure_reason' => null,
         ]);
 
-        return $withdrawal->refresh();
+        $this->notifyUser($withdrawal);
+
+        return $withdrawal->fresh();
     }
 
     public function reverse(WithdrawalRequest $withdrawal, ?string $reason = null): WithdrawalRequest
@@ -146,7 +201,9 @@ final class WithdrawalService
             'reversed_at' => now(),
         ]);
 
-        return $withdrawal->refresh();
+        $this->notifyUser($withdrawal);
+
+        return $withdrawal->fresh();
     }
 
     public function findByReference(string $reference): ?WithdrawalRequest
@@ -155,6 +212,42 @@ final class WithdrawalService
             ->where('reference', $reference)
             ->orWhere('provider_reference', $reference)
             ->first();
+    }
+
+    private function notifyAdmin(WithdrawalRequest $withdrawal): void
+    {
+        $adminPhone = config('notifications.admin_phone');
+        if ($adminPhone === null || $adminPhone === '') {
+            return;
+        }
+
+        try {
+            $this->sms->notifyAdminOfWithdrawal(
+                adminPhone: (string) $adminPhone,
+                reference: $withdrawal->reference,
+                amount: $withdrawal->payout_amount,
+                currency: $withdrawal->currency,
+                ownerName: $withdrawal->owner_name,
+                recipientPhone: $withdrawal->recipient_phone,
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Admin SMS notification failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function notifyUser(WithdrawalRequest $withdrawal): void
+    {
+        try {
+            $this->sms->notifyUserOfWithdrawal(
+                userPhone: $withdrawal->recipient_phone,
+                reference: $withdrawal->reference,
+                status: $withdrawal->status,
+                amount: $withdrawal->payout_amount,
+                currency: $withdrawal->currency,
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('User SMS notification failed', ['error' => $e->getMessage()]);
+        }
     }
 
     private function makeReference(string $prefix): string

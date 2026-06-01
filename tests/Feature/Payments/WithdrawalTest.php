@@ -21,6 +21,11 @@ class WithdrawalTest extends TestCase
         parent::setUp();
         $this->uid = 'firebase-test-uid-456';
         $this->token = 'test-token:'.$this->uid;
+        config([
+            'malipo.api_token' => 'mp_sk_test_secret',
+            'malipo.public_key' => 'mp_pk_test_public',
+            'malipo.secret_key' => 'mp_sk_test_secret',
+        ]);
     }
 
     public function test_teacher_withdrawal_reserves_funds_and_creates_disbursement(): void
@@ -52,6 +57,18 @@ class WithdrawalTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.status', 'completed');
+
+        Http::assertSent(function ($request): bool {
+            $payload = $request->data();
+
+            return $request->url() === 'https://api.malipopay.co.tz/api/v1/payment/disbursement'
+                && $request->hasHeader('apiToken', 'mp_sk_test_secret')
+                && $request->hasHeader('Authorization', 'Bearer mp_pk_test_public')
+                && $payload['amount'] === 19000
+                && $payload['phoneNumber'] === '255712345678'
+                && ! array_key_exists('project', $payload)
+                && ! array_key_exists('merchantAccountId', $payload);
+        });
 
         $account = WalletAccount::where('owner_uid', $this->uid)->where('owner_type', 'teacher')->first();
         $this->assertSame(30000, $account->balance);

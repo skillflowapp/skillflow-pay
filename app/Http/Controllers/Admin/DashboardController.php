@@ -28,6 +28,7 @@ final class DashboardController extends Controller
             'failed_transactions' => (clone $orders)->where('status', 'failed')->count(),
             'total_withdrawals' => (clone $withdrawals)->count(),
             'completed_withdrawals' => (clone $withdrawals)->where('status', 'completed')->count(),
+            'pending_withdrawals' => (clone $withdrawals)->where('status', 'pending')->count(),
             'total_teachers' => (int) DB::table('wallet_accounts')->where('owner_type', 'teacher')->count(),
             'total_students' => (int) DB::table('wallet_accounts')->where('owner_type', 'referral')->count(),
         ];

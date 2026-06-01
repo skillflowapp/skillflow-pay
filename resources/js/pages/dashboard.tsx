@@ -1,7 +1,4 @@
 import { Head, Link } from '@inertiajs/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { dashboard } from '@/routes';
 import {
     ArrowUpRight,
     ArrowDownRight,
@@ -12,10 +9,11 @@ import {
     Activity,
     RefreshCw,
     CheckCircle2,
-    XCircle,
     Clock,
-    ChevronRight,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { dashboard } from '@/routes';
 
 type DashboardProps = {
     stats: {
@@ -26,6 +24,7 @@ type DashboardProps = {
         failed_transactions: number;
         total_withdrawals: number;
         completed_withdrawals: number;
+        pending_withdrawals: number;
         total_teachers: number;
         total_students: number;
     };
@@ -213,6 +212,7 @@ export default function Dashboard({
                         <CardContent className="space-y-3">
                             {statusBreakdown.map((row) => {
                                 const pct = stats.total_transactions > 0 ? Math.round((row.count / stats.total_transactions) * 100) : 0;
+
                                 return (
                                     <div key={row.status}>
                                         <div className="mb-1 flex items-center justify-between text-sm">
@@ -350,16 +350,17 @@ export default function Dashboard({
                                     color: 'text-primary',
                                 },
                                 {
-                                    label: 'Pending / Processing',
+                                    label: 'Pending Txns',
                                     value: String(stats.pending_transactions),
                                     icon: Clock,
                                     color: 'text-amber-400',
                                 },
                                 {
-                                    label: 'Failed / Rejected',
-                                    value: String(stats.failed_transactions),
-                                    icon: XCircle,
-                                    color: 'text-red-400',
+                                    label: 'Pending Payouts',
+                                    value: String(stats.pending_withdrawals),
+                                    icon: Wallet,
+                                    color: 'text-primary',
+                                    href: '/admin/withdrawals',
                                 },
                                 {
                                     label: 'Avg Revenue / Txn',
@@ -367,8 +368,9 @@ export default function Dashboard({
                                     icon: TrendingUp,
                                     color: 'text-primary',
                                 },
-                            ].map((item) => (
-                                <div key={item.label} className="flex items-center gap-4 rounded-lg border border-border bg-muted p-4">
+                            ].map((item) => {
+                                const cardContent = (
+                                <div className="flex items-center gap-4 rounded-lg border border-border bg-muted p-4">
                                     <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-muted ${item.color}`}>
                                         <item.icon className="h-5 w-5" />
                                     </div>
@@ -377,7 +379,14 @@ export default function Dashboard({
                                         <p className="text-lg font-bold text-foreground">{item.value}</p>
                                     </div>
                                 </div>
-                            ))}
+                                );
+
+                                return item.href ? (
+                                    <Link key={item.label} href={item.href} className="block transition hover:opacity-80">{cardContent}</Link>
+                                ) : (
+                                    <div key={item.label}>{cardContent}</div>
+                                );
+                            })}
                         </div>
                     </CardContent>
                 </Card>

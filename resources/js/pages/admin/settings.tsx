@@ -1,14 +1,14 @@
 import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { Shield, Server, Globe, Flame, Eye, EyeOff } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Server, Globe, Clock, Flame, Eye, EyeOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { Auth } from '@/types';
 
 type PageProps = {
@@ -19,6 +19,9 @@ type PageProps = {
         malipo_secret_key: string;
         malipo_webhook_secret: string;
         malipo_timeout: string;
+        textify_api_key: string;
+        textify_sender_name: string;
+        admin_notification_phone: string;
         firebase_project_id: string;
     };
     flash?: {
@@ -60,17 +63,20 @@ export default function AdminSettings() {
         malipo_secret_key: '',
         malipo_webhook_secret: '',
         malipo_timeout: credentials.malipo_timeout,
+        textify_api_key: '',
+        textify_sender_name: credentials.textify_sender_name || 'UPDATE',
+        admin_notification_phone: credentials.admin_notification_phone || '',
         firebase_project_id: credentials.firebase_project_id,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         clearErrors();
-        router.post('/admin/settings', data as Record<string, unknown>, {
+        router.post('/admin/settings', data as any, {
             preserveScroll: true,
             onError: (errs) => {
                 Object.entries(errs).forEach(([key, value]) => {
-                    setError(key, value as string);
+                    setError(key as keyof typeof data, value as string);
                 });
             },
         });
@@ -141,7 +147,7 @@ export default function AdminSettings() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="malipo_api_token">
-                                        API Token
+                                        Secret Key (apiToken)
                                         <Badge variant="secondary" className="ml-2">Required</Badge>
                                     </Label>
                                     <div className="flex items-center gap-2">
@@ -166,7 +172,7 @@ export default function AdminSettings() {
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Paste exactly as shown in your provider dashboard.
+                                        Malipo sends this value in the apiToken header. It normally starts with mp_sk_.
                                     </p>
                                     {credentials.malipo_api_token.includes('*') && (
                                         <p className="text-xs text-muted-foreground">
@@ -178,7 +184,7 @@ export default function AdminSettings() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="malipo_secret_key">
-                                        Secret Key (Authorization)
+                                        Public Key (Authorization)
                                         <Badge variant="secondary" className="ml-2">Required</Badge>
                                     </Label>
                                     <div className="flex items-center gap-2">
@@ -211,39 +217,61 @@ export default function AdminSettings() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="malipo_webhook_secret">
-                                        Webhook Secret
-                                        <Badge variant="outline" className="ml-2">Optional</Badge>
+                                    <Label htmlFor="textify_api_key">
+                                        Textify API Key
+                                        <Badge variant="secondary" className="ml-2">Required</Badge>
                                     </Label>
                                     <Input
-                                        id="malipo_webhook_secret"
-                                        name="malipo_webhook_secret"
+                                        id="textify_api_key"
+                                        name="textify_api_key"
                                         type="password"
-                                        value={data.malipo_webhook_secret}
-                                        onChange={(e) => setData('malipo_webhook_secret', e.target.value)}
-                                        placeholder="Enter webhook secret for verification"
+                                        value={data.textify_api_key}
+                                        onChange={(e) => setData('textify_api_key', e.target.value)}
+                                        placeholder="Enter your Textify API key"
+                                        required
                                     />
-                                    <InputError message={errors.malipo_webhook_secret} />
+                                    {credentials.textify_api_key.includes('*') && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Currently stored: {credentials.textify_api_key}
+                                        </p>
+                                    )}
+                                    <InputError message={errors.textify_api_key} />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="malipo_timeout">
-                                        <span className="flex items-center gap-1">
-                                            <Clock className="h-4 w-4" />
-                                            Timeout (seconds)
-                                        </span>
+                                    <Label htmlFor="textify_sender_name">
+                                        Textify Sender Name
+                                        <Badge variant="secondary" className="ml-2">Required</Badge>
                                     </Label>
                                     <Input
-                                        id="malipo_timeout"
-                                        name="malipo_timeout"
-                                        type="number"
-                                        min={5}
-                                        max={120}
-                                        value={data.malipo_timeout}
-                                        onChange={(e) => setData('malipo_timeout', e.target.value)}
+                                        id="textify_sender_name"
+                                        name="textify_sender_name"
+                                        value={data.textify_sender_name}
+                                        onChange={(e) => setData('textify_sender_name', e.target.value)}
+                                        placeholder="UPDATE"
+                                        maxLength={11}
                                         required
                                     />
-                                    <InputError message={errors.malipo_timeout} />
+                                    <InputError message={errors.textify_sender_name} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="admin_notification_phone">
+                                        Admin Notification Phone
+                                        <Badge variant="secondary" className="ml-2">Required</Badge>
+                                    </Label>
+                                    <Input
+                                        id="admin_notification_phone"
+                                        name="admin_notification_phone"
+                                        value={data.admin_notification_phone}
+                                        onChange={(e) => setData('admin_notification_phone', e.target.value)}
+                                        placeholder="255712345678"
+                                        required
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        SMS will be sent to this number when a new payout is requested.
+                                    </p>
+                                    <InputError message={errors.admin_notification_phone} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -321,7 +349,7 @@ export default function AdminSettings() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="text-sm">
-                                <p className="font-medium">API Token</p>
+                                <p className="font-medium">Resolved apiToken header</p>
                                 <ul className="mt-1 list-inside list-disc text-muted-foreground">
                                     <li>Length: {diagnostics.malipo_api_token.length} chars</li>
                                     <li>Starts with: {diagnostics.malipo_api_token.starts_with}...</li>
@@ -331,7 +359,7 @@ export default function AdminSettings() {
                                 </ul>
                             </div>
                             <div className="text-sm">
-                                <p className="font-medium">Secret Key</p>
+                                <p className="font-medium">Resolved Authorization bearer</p>
                                 <ul className="mt-1 list-inside list-disc text-muted-foreground">
                                     <li>Length: {diagnostics.malipo_secret_key.length} chars</li>
                                     <li>Starts with: {diagnostics.malipo_secret_key.starts_with}...</li>

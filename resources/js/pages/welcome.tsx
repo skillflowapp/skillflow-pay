@@ -1,7 +1,7 @@
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import { ArrowRight, CreditCard, Shield, Zap, BarChart3, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function Welcome() {
     const { auth } = usePage().props as { auth?: { user?: unknown } };

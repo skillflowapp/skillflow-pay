@@ -33,7 +33,7 @@ export function AppSidebar() {
         },
         {
             title: 'Withdrawals',
-            href: dashboard(),
+            href: '/admin/withdrawals',
             icon: Wallet,
         },
     ];
